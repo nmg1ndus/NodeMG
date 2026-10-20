@@ -1,1 +1,39 @@
-
+<!doctype html>
+<html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vault tool</title>
+<style>
+body{font:15px/1.5 system-ui,sans-serif;max-width:640px;margin:32px auto;padding:0 16px;background:#0b0f17;color:#e9edf5}
+label{display:block;margin:14px 0 4px;font-weight:700}
+input,textarea,select{width:100%;padding:10px;border-radius:8px;border:1px solid #2c3852;background:#121826;color:inherit;font:inherit}
+button{margin-top:18px;padding:11px 18px;border:0;border-radius:9px;background:#8393ff;color:#0b0f17;font-weight:800;cursor:pointer}
+pre{white-space:pre-wrap;word-break:break-all;background:#121826;padding:12px;border-radius:8px;max-height:220px;overflow:auto}
+small{color:#98a4bb}
+</style></head><body>
+<h1>Vault tool</h1>
+<p>यहाँ भरी जानकारी आपके ब्राउज़र में ही लॉक होती है — कहीं भेजी नहीं जाती। नतीजे में मिली <code>vault.js</code> डाउनलोड करके रिपॉजिटरी की <code>js/vault.js</code> से बदल दीजिए।</p>
+<label>पासवर्ड (डैशबोर्ड खोलने वाला)</label><input id="pw" type="password" autocomplete="off">
+<label>Data source</label>
+<select id="src"><option value="appsscript">appsscript (Google Sheet)</option><option value="csv">csv (Publish to web)</option><option value="sample">sample (डेमो)</option></select>
+<label>Apps Script URL</label><input id="url" placeholder="https://script.google.com/macros/s/…/exec">
+<label>Access key (वैकल्पिक)</label><input id="key">
+<label>CSV URL (अगर csv चुना)</label><input id="csv">
+<label>डेमो CSV (वैकल्पिक, sample के लिए)</label><textarea id="sample" rows="4"></textarea>
+<button id="go">vault.js बनाइए</button>
+<p id="msg"></p><pre id="out" hidden></pre>
+<script>
+const b=x=>btoa(String.fromCharCode(...new Uint8Array(x)));
+document.getElementById('go').onclick=async()=>{
+  const $=i=>document.getElementById(i).value, msg=document.getElementById('msg');
+  if(!$('pw')){msg.textContent='पासवर्ड डालिए';return}
+  const enc=new TextEncoder(), s=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12)), ITER=310000;
+  const km=await crypto.subtle.importKey('raw',enc.encode($('pw')),'PBKDF2',false,['deriveKey']);
+  const k=await crypto.subtle.deriveKey({name:'PBKDF2',salt:s,iterations:ITER,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['encrypt']);
+  const payload={dataSource:$('src'),appsScriptUrl:$('url').trim(),accessKey:$('key').trim(),csvUrl:$('csv').trim()};
+  if($('sample').trim())payload.sampleCsv=$('sample');
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},k,enc.encode(JSON.stringify(payload)));
+  const text='/* Encrypted settings (AES-256-GCM, key from password via PBKDF2). */\nwindow.NODEMG_VAULT = '+JSON.stringify({v:1,iter:ITER,salt:b(s),iv:b(iv),data:b(ct)})+';\n';
+  const o=document.getElementById('out'); o.hidden=false; o.textContent=text;
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'text/javascript'})); a.download='vault.js'; a.click();
+  msg.textContent='vault.js डाउनलोड हो गई। इसे js/vault.js की जगह रखिए।';
+};
+</script></body></html>
