@@ -24,8 +24,8 @@ window.NODEMG_CONFIG = {
 
   /* साइडबार में आइकन पर क्लिक करने पर खुलने वाले आपके पेज (वैकल्पिक) */
   profileLinks: {
-    youtube: '',
-    instagram: '',
-    facebook: ''
+    youtube: 'https://youtube.com/@nmgindus',
+    instagram: 'https://www.instagram.com/nmgindus/',
+    facebook: 'https://www.facebook.com/NMGIndus/'
   }
 };
